@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -23,11 +24,26 @@ jobs:
           SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
         run: |
           ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST << 'EOF'
+            # Create directory if it doesn't exist
+            mkdir -p /var/www/html/baust
             cd /var/www/html/baust
-            git pull origin master
-            # Add your build and deployment commands here
-            # For example:
+            
+            # Initialize git if not already initialized
+            if [ ! -d .git ]; then
+              git init
+              git remote add origin https://github.com/sharansifat/baust.git
+            fi
+            
+            # Fetch and reset to match remote
+            git fetch origin master
+            git reset --hard origin/master
+            
+            # Install dependencies and build (uncomment if needed)
             # npm install
             # npm run build
-            # pm2 restart app
+            
+            # Restart service (uncomment if needed)
+            # pm2 restart app || pm2 start app.js
+            
+            echo "Deployment completed successfully!"
           EOF
