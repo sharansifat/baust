@@ -19,11 +19,6 @@ jobs:
           else
             echo "SSH_PRIVATE_KEY is not set"
           fi
-          if [ -n "${{ secrets.KNOWN_HOSTS }}" ]; then
-            echo "KNOWN_HOSTS is set"
-          else
-            echo "KNOWN_HOSTS is not set"
-          fi
           if [ -n "${{ secrets.SSH_HOST }}" ]; then
             echo "SSH_HOST is set"
           else
@@ -34,22 +29,29 @@ jobs:
           else
             echo "SSH_USERNAME is not set"
           fi
-      
-      - name: Setup SSH
+
+      - name: Install SSH key
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add known hosts
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
-          
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+
       - name: Test SSH Connection
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} 'echo "SSH Connection Successful"'
-          
+          echo "Testing SSH connection..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} 'echo "SSH Connection Successful"'
+
       - name: Deploy to VPS
+        if: success()
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
-            echo "Starting deployment..."
+          echo "Starting deployment..."
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
+            set -e
+            echo "Connected to server"
             
             # Create directory if it doesn't exist
             mkdir -p /var/www/html/baust
