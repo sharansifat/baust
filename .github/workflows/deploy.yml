@@ -11,39 +11,61 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Debug Secrets
+        run: |
+          if [ -n "${{ secrets.SSH_PRIVATE_KEY }}" ]; then
+            echo "SSH_PRIVATE_KEY is set"
+          else
+            echo "SSH_PRIVATE_KEY is not set"
+          fi
+          if [ -n "${{ secrets.KNOWN_HOSTS }}" ]; then
+            echo "KNOWN_HOSTS is set"
+          else
+            echo "KNOWN_HOSTS is not set"
+          fi
+          if [ -n "${{ secrets.SSH_HOST }}" ]; then
+            echo "SSH_HOST is set"
+          else
+            echo "SSH_HOST is not set"
+          fi
+          if [ -n "${{ secrets.SSH_USERNAME }}" ]; then
+            echo "SSH_USERNAME is set"
+          else
+            echo "SSH_USERNAME is not set"
+          fi
       
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo "${{ secrets.KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} 'echo "SSH Connection Successful"'
           
       - name: Deploy to VPS
-        env:
-          SSH_HOST: ${{ secrets.SSH_HOST }}
-          SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
         run: |
-          ssh -o StrictHostKeyChecking=no $SSH_USERNAME@$SSH_HOST << 'EOF'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }} << 'EOF'
+            echo "Starting deployment..."
+            
             # Create directory if it doesn't exist
             mkdir -p /var/www/html/baust
             cd /var/www/html/baust
             
             # Initialize git if not already initialized
             if [ ! -d .git ]; then
+              echo "Initializing git repository..."
               git init
               git remote add origin https://github.com/sharansifat/baust.git
             fi
             
             # Fetch and reset to match remote
+            echo "Fetching latest changes..."
             git fetch origin master
             git reset --hard origin/master
-            
-            # Install dependencies and build (uncomment if needed)
-            # npm install
-            # npm run build
-            
-            # Restart service (uncomment if needed)
-            # pm2 restart app || pm2 start app.js
             
             echo "Deployment completed successfully!"
           EOF
