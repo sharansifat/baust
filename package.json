@@ -21,7 +21,7 @@
     "start:windows": "wrangler pages dev ./build/client",
     "start:unix": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings",
     "start": "node -e \"const { spawn } = require('child_process'); const isWindows = process.platform === 'win32'; const cmd = isWindows ? 'npm run start:windows' : 'npm run start:unix'; const child = spawn(cmd, { shell: true, stdio: 'inherit' }); child.on('exit', code => process.exit(code));\"",
-    "dockerstart": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings --ip 0.0.0.0 --port 5173 --no-show-interactive-dev-session",
+    "dockerstart": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings --ip 0.0.0.0 --port 5173 --no-show-interactive-dev-session --compatibility-flag=nodejs_compat",
     "dockerrun": "docker run -it -d --name baust-container -p 5173:5173 --env-file .env baust",
     "dockerbuild:prod": "docker build -t baust:production -t baust:latest --target bolt-ai-production .",
     "dockerbuild": "docker build -t baust:development -t baust:latest --target bolt-ai-development .",
